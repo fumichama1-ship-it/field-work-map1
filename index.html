@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>作業進捗管理アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>作業進捗管理アプリ</h1>
+
+  <div class="form-area">
+    <input type="text" id="workName" placeholder="作業名">
+    <input type="text" id="address" placeholder="住所">
+    <input type="text" id="worker" placeholder="担当者">
+    <input type="date" id="deadline">
+
+    <select id="status">
+      <option value="未対応">未対応</option>
+      <option value="作業中">作業中</option>
+      <option value="完了">完了</option>
+    </select>
+
+    <button id="addButton">登録</button>
+    <input type="file" id="csvInput">
+    <button id="routeButton">未完了ルート作成</button>
+  </div>
+
+  <h2>作業一覧</h2>
+<div class="search-area">
+  <input type="text" id="searchInput" placeholder="作業名・住所・担当者で検索">
+</div>
+  <div class="table-area">
+  <table>
+    </div>
+    <thead>
+      <tr>
+        <th>作業名</th>
+        <th>住所</th>
+        <th>担当者</th>
+        <th>期限</th>
+        <th>ステータス</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="workList">
+    </tbody>
+  </table>
+
+  <script src="script.js"></script>
+</body>
+</html>
