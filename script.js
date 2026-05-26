@@ -3,6 +3,10 @@ const workList = document.getElementById("workList");
 const searchInput = document.getElementById("searchInput");
 const csvInput = document.getElementById("csvInput");
 const routeButton = document.getElementById("routeButton");
+const sheetButton = document.getElementById("sheetButton");
+
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQfC5tHCvE9gs0Fwr8-lsjbNy-2EehrHqzKb4oQtQZ_NMr5DXZjxG0Nu4haZV_0EdKc-0tZAyKC5imS/pub?output=csv";
+
 let works = JSON.parse(localStorage.getItem("works")) || [];
 
 function saveWorks() {
@@ -209,5 +213,46 @@ routeButton.addEventListener("click", function () {
     }).join("/");
 
   window.open(url, "_blank");
+});sheetButton.addEventListener("click", function () {
+  fetch(sheetUrl)
+    .then(function (response) {
+      return response.text();
+    })
+    .then(function (text) {
+      const rows = text.split("\n");
+
+      rows.shift();
+
+      rows.forEach(function (row) {
+        const cols = row.split(",");
+
+        if (cols.length >= 5) {
+          const newWork = {
+            workName: cols[0].trim(),
+            address: cols[1].trim(),
+            worker: cols[2].trim(),
+            deadline: cols[3].trim(),
+            status: cols[4].trim(),
+            memo: cols[5] ? cols[5].trim() : ""
+          };
+
+          const isDuplicate = works.some(function (work) {
+            return (
+              work.workName === newWork.workName &&
+              work.address === newWork.address &&
+              work.deadline === newWork.deadline
+            );
+          });
+
+          if (!isDuplicate) {
+            works.push(newWork);
+          }
+        }
+      });
+
+      saveWorks();
+      showWorks();
+      alert("スプレッドシートを読み込みました");
+    });
 });
 showWorks();
