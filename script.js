@@ -2,15 +2,48 @@ const addButton = document.getElementById("addButton");
 const workList = document.getElementById("workList");
 const searchInput = document.getElementById("searchInput");
 const csvInput = document.getElementById("csvInput");
-const routeButton = document.getElementById("routeButton");
 const sheetButton = document.getElementById("sheetButton");
+const routeButton = document.getElementById("routeButton");
 
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQfC5tHCvE9gs0Fwr8-lsjbNy-2EehrHqzKb4oQtQZ_NMr5DXZjxG0Nu4haZV_0EdKc-0tZAyKC5imS/pub?output=csv";
 
 let works = JSON.parse(localStorage.getItem("works")) || [];
+let markers = [];
+
+const map = L.map("map").setView([35.681236, 139.767125], 10);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "OpenStreetMap"
+}).addTo(map);
 
 function saveWorks() {
   localStorage.setItem("works", JSON.stringify(works));
+}
+
+function drawPins() {
+  markers.forEach(function (marker) {
+    map.removeLayer(marker);
+  });
+
+  markers = [];
+
+  works.forEach(function (work) {
+    if (work.lat && work.lng) {
+      const marker = L.marker([
+        Number(work.lat),
+        Number(work.lng)
+      ])
+        .addTo(map)
+        .bindPopup(`
+          <b>${work.workName}</b><br>
+          ${work.address}<br>
+          担当:${work.worker}<br>
+          状態:${work.status}
+        `);
+
+      markers.push(marker);
+    }
+  });
 }
 
 function showWorks() {
@@ -53,40 +86,12 @@ function showWorks() {
     const deleteButton = row.querySelector(".deleteButton");
 
     mapButton.addEventListener("click", function () {
+      const mapUrl =
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(work.address);
 
-const note =
-`
-現場:${work.workName}
-
-担当:${work.worker}
-
-期限:${work.deadline}
-
-状態:${work.status}
-`;
-
-localStorage.setItem(
-"selectedWork",
-JSON.stringify({
-address: work.address,
-note: note
-})
-);
-
-const mapUrl =
-"https://www.google.com/maps/search/?api=1&query=" +
-encodeURIComponent(
-work.address +
-" " +
-work.workName
-);
-
-window.open(
-mapUrl,
-"_blank"
-);
-
-});
+      window.open(mapUrl, "_blank");
+    });
 
     editButton.addEventListener("click", function () {
       const newWorker = prompt("担当者変更", work.worker);
@@ -100,6 +105,7 @@ mapUrl,
 
         saveWorks();
         showWorks();
+        drawPins();
       }
     });
 
@@ -107,10 +113,25 @@ mapUrl,
       works.splice(index, 1);
       saveWorks();
       showWorks();
+      drawPins();
     });
 
     workList.appendChild(row);
   });
+}
+
+function addWork(newWork) {
+  const isDuplicate = works.some(function (work) {
+    return (
+      work.workName === newWork.workName &&
+      work.address === newWork.address &&
+      work.deadline === newWork.deadline
+    );
+  });
+
+  if (!isDuplicate) {
+    works.push(newWork);
+  }
 }
 
 addButton.addEventListener("click", function () {
@@ -125,17 +146,20 @@ addButton.addEventListener("click", function () {
     return;
   }
 
-  const work = {
+  addWork({
     workName: workName,
     address: address,
     worker: worker,
     deadline: deadline,
-    status: status
-  };
+    status: status,
+    memo: "",
+    lat: "",
+    lng: ""
+  });
 
-  works.push(work);
   saveWorks();
   showWorks();
+  drawPins();
 
   document.getElementById("workName").value = "";
   document.getElementById("address").value = "";
@@ -164,56 +188,28 @@ csvInput.addEventListener("change", function (event) {
       const cols = row.split(",");
 
       if (cols.length >= 5) {
-        const newWork = {
+        addWork({
           workName: cols[0].trim(),
           address: cols[1].trim(),
           worker: cols[2].trim(),
           deadline: cols[3].trim(),
-          status: cols[4].trim()
-        };
-
-        const isDuplicate = works.some(function (work) {
-          return (
-            work.workName === newWork.workName &&
-            work.address === newWork.address &&
-            work.deadline === newWork.deadline
-          );
+          status: cols[4].trim(),
+          memo: "",
+          lat: cols[5] ? cols[5].trim() : "",
+          lng: cols[6] ? cols[6].trim() : ""
         });
-
-        if (!isDuplicate) {
-          works.push(newWork);
-        }
       }
     });
 
     saveWorks();
     showWorks();
+    drawPins();
   };
 
   reader.readAsText(file);
 });
-routeButton.addEventListener("click", function () {
-  const targetWorks = works.filter(function (work) {
-    return work.status !== "完了";
-  });
 
-  if (targetWorks.length === 0) {
-    alert("未完了の現場がありません");
-    return;
-  }
-
-  const addresses = targetWorks.map(function (work) {
-    return work.address;
-  });
-
-  const url =
-    "https://www.google.com/maps/dir/" +
-    addresses.map(function (address) {
-      return encodeURIComponent(address);
-    }).join("/");
-
-  window.open(url, "_blank");
-});sheetButton.addEventListener("click", function () {
+sheetButton.addEventListener("click", function () {
   fetch(sheetUrl)
     .then(function (response) {
       return response.text();
@@ -227,100 +223,45 @@ routeButton.addEventListener("click", function () {
         const cols = row.split(",");
 
         if (cols.length >= 5) {
-          const newWork = {
+          addWork({
             workName: cols[0].trim(),
             address: cols[1].trim(),
             worker: cols[2].trim(),
             deadline: cols[3].trim(),
             status: cols[4].trim(),
-            memo:
-cols[5]
-?
-cols[5].trim()
-:
-"",
-
-lat:
-cols[6]
-?
-cols[6].trim()
-:
-"",
-
-lng:
-cols[7]
-?
-cols[7].trim()
-:
-""
-          };
-
-          const isDuplicate = works.some(function (work) {
-            return (
-              work.workName === newWork.workName &&
-              work.address === newWork.address &&
-              work.deadline === newWork.deadline
-            );
+            memo: "",
+            lat: cols[5] ? cols[5].trim() : "",
+            lng: cols[6] ? cols[6].trim() : ""
           });
-
-          if (!isDuplicate) {
-            works.push(newWork);
-          }
         }
       });
 
       saveWorks();
       showWorks();
+      drawPins();
+
       alert("スプレッドシートを読み込みました");
     });
 });
-showWorks();
-const map =
-L.map("map")
-.setView(
-[35.681236,139.767125],
-10
-);
 
-L.tileLayer(
-"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-{
-attribution:
-"OpenStreetMap"
-}
-)
-.addTo(map);
+routeButton.addEventListener("click", function () {
+  const targetWorks = works.filter(function (work) {
+    return work.status !== "完了";
+  });
 
-function drawPins(){
+  if (targetWorks.length === 0) {
+    alert("未完了の現場がありません");
+    return;
+  }
 
-works.forEach(function(work){
+  const addresses = targetWorks.map(function (work) {
+    return encodeURIComponent(work.address);
+  });
 
-if(
-work.lat &&
-work.lng
-){
+  const url = "https://www.google.com/maps/dir/" + addresses.join("/");
 
-L.marker([
-Number(work.lat),
-Number(work.lng)
-])
-
-.addTo(map)
-
-.bindPopup(`
-<b>${work.workName}</b>
-<br>
-${work.address}
-<br>
-担当:${work.worker}
-<br>
-状態:${work.status}
-`);
-
-}
-
+  window.open(url, "_blank");
 });
 
-}
-
+showWorks();
 drawPins();
