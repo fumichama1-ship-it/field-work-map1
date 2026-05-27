@@ -233,7 +233,26 @@ routeButton.addEventListener("click", function () {
             worker: cols[2].trim(),
             deadline: cols[3].trim(),
             status: cols[4].trim(),
-            memo: cols[5] ? cols[5].trim() : ""
+            memo:
+cols[5]
+?
+cols[5].trim()
+:
+"",
+
+lat:
+cols[6]
+?
+cols[6].trim()
+:
+"",
+
+lng:
+cols[7]
+?
+cols[7].trim()
+:
+""
           };
 
           const isDuplicate = works.some(function (work) {
@@ -256,3 +275,52 @@ routeButton.addEventListener("click", function () {
     });
 });
 showWorks();
+const map =
+L.map("map")
+.setView(
+[35.681236,139.767125],
+10
+);
+
+L.tileLayer(
+"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{
+attribution:
+"OpenStreetMap"
+}
+)
+.addTo(map);
+
+function drawPins(){
+
+works.forEach(function(work){
+
+if(
+work.lat &&
+work.lng
+){
+
+L.marker([
+Number(work.lat),
+Number(work.lng)
+])
+
+.addTo(map)
+
+.bindPopup(`
+<b>${work.workName}</b>
+<br>
+${work.address}
+<br>
+担当:${work.worker}
+<br>
+状態:${work.status}
+`);
+
+}
+
+});
+
+}
+
+drawPins();
