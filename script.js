@@ -203,7 +203,70 @@ csvInput.addEventListener("change", function (event) {
 
     saveWorks();
     showWorks();
-    drawPins();
+    function drawPins() {
+
+markers.forEach(function(marker){
+map.removeLayer(marker);
+});
+
+markers=[];
+
+works.forEach(function(work){
+
+const lat =
+Number(work.lat);
+
+const lng =
+Number(work.lng);
+
+if(
+!isNaN(lat) &&
+!isNaN(lng)
+){
+
+const marker =
+L.marker([
+lat,
+lng
+])
+
+.addTo(map)
+
+.bindPopup(`
+<b>${work.workName}</b>
+<br>
+${work.address}
+<br>
+担当:${work.worker}
+<br>
+状態:${work.status}
+`);
+
+markers.push(marker);
+
+}
+
+});
+
+if(
+markers.length>0
+){
+
+const group =
+L.featureGroup(
+markers
+);
+
+map.fitBounds(
+group.getBounds(),
+{
+padding:[50,50]
+}
+);
+
+}
+
+}
   };
 
   reader.readAsText(file);
